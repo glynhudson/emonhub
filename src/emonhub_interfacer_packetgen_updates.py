@@ -5,8 +5,6 @@
   OpenEnergyMonitor project:
   http://openenergymonitor.org
 
-  emoHub interfaced with addition of hacks to use the emoncms packet gen module https://github.com/emoncms/emoncms/blob/bufferedwrite/docs/emonhubmod.md
-
 """
 
 import serial
@@ -446,7 +444,7 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
 
         # Jee specific settings to be picked up as changes not defaults to initialise "Jee" device
         self._jee_settings =  ({'baseid': '15', 'frequency': '433', 'group': '210', 'quiet': 'True'})
-        self._jee_prefix = ({'baseid': 'i', 'frequency': '@ ', 'group': 'g', 'quiet': 'q'})
+        self._jee_prefix = ({'baseid': 'i', 'frequency': '', 'group': 'g', 'quiet': 'q'})
 
         # Pre-load Jee settings only if info string available for checks
         if all(i in self.info[1] for i in (" i", " g", " @ ", " MHz")):
@@ -544,33 +542,24 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
                 setting = kwargs[key]
             else:
                 setting = self._jee_settings[key]
-            # Create a flag for additional checks for for non-mandatory Jee settings
-            # as the confirmation string from Jee device does not include all settings
-            chk_info = False
-            # When "info" not available the jee_settings will not be of been pre-loaded
-            # this is so that the initial changes are detected to load as defaults.
-            if key in self._settings and self._settings[key] == setting:
-                # confirmation string always contains baseid, group anf freq
-                if " i" and " g" and " @ " and " MHz" in self.info[1]:
-                    # If setting confirmed as already set, continue without changing
-                    if (self._jee_prefix[key] + str(setting)) in self.info[1]:
-                        continue
-                    # or flag to check later if unconfirmed
-                    chk_info = True
-                else:
+            # convert bools to ints
+            if str.capitalize(str(setting)) in ['True', 'False']:
+                setting = int(setting == "True")
+            # confirmation string always contains baseid, group anf freq
+            if " i" and " g" and " @ " and " MHz" in self.info[1]:
+                # If setting confirmed as already set, continue without changing
+                if (self._jee_prefix[key] + str(setting)) in self.info[1].split():
                     continue
+            elif key in self._settings and self._settings[key] == setting:
+                continue
             if key == 'baseid' and int(setting) >=1 and int(setting) <=26:
                 command = setting + 'i'
             elif key == 'frequency' and setting in ['433','868','915']:
                 command = setting[:1] + 'b'
             elif key == 'group'and int(setting) >=0 and int(setting) <=212:
                 command = setting + 'g'
-            elif key == 'quiet' and str.capitalize(str(setting)) in ['True', 'False']:
-                setting = str.capitalize(str(setting))
-                val = str(int(setting == "True"))
-                if chk_info and (self._jee_prefix[key] + val) in self.info[1]:
-                    continue
-                command =  val + 'q'
+            elif key == 'quiet' and int(setting) >=0 and int(setting) <2:
+                command = str(setting) + 'q'
             else:
                 self._log.warning("'%s' is not a valid setting for %s: %s" % (str(setting), self.name, key))
                 continue
@@ -592,13 +581,13 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
 
         now = time.time()
         
-        #packet gen control
-        if now - self._control_timestamp > 5:
-            self._control_timestamp = now
-            packet = urllib2.urlopen("http://localhost/emoncms/packetgen/rfpacket.json?apikey=XXXXXXXXXXXXXXX").read()
-            packet = packet[1:-1]
-            self._log.debug(self.name + " broadcasting control packet " + packet + "s")
-            self._ser.write(packet+"s")
+        #packet gen control 
+     	if now - self._control_timestamp > 5: 
+     		self._control_timestamp = now
+     		packet = urllib2.urlopen("http://localhost/emoncms/packetgen/rfpacket.json?apikey=b53ec1abe610c66009b207d6207f2c9e").read() 
+     		packet = packet[1:-1]
+     		self._log.debug(self.name + " broadcasting control packet " + packet + "s")
+     		self._ser.write(packet+"s") 
 
         # Broadcast time to synchronize emonGLCD
         interval = int(self._settings['interval'])
