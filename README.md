@@ -1,6 +1,8 @@
 emonHub
 =======
 
+### Note: An alternate version of emonHub ('emon-pi' variant) designed to work with emonPi / emonBase is maintained on the [OpenEnergyMonitor github](https://github.com/openenergymonitor/emonhub)
+
 Development branch
 ------------------
 
